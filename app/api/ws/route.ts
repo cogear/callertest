@@ -3,7 +3,11 @@ import { NextRequest } from 'next/server';
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
+    // Log all headers for debugging
+    console.log('Incoming headers:', Object.fromEntries(request.headers.entries()));
+
     if (request.headers.get('upgrade') !== 'websocket') {
+        console.log('Not a WebSocket upgrade request');
         return new Response('Expected Upgrade: websocket', { status: 426 });
     }
 
@@ -11,16 +15,21 @@ export async function GET(request: NextRequest) {
         const webSocketKey = request.headers.get('sec-websocket-key');
         const webSocketProtocol = request.headers.get('sec-websocket-protocol');
 
+        console.log('WebSocket Key:', webSocketKey);
+        console.log('WebSocket Protocol:', webSocketProtocol);
+
         if (!webSocketProtocol?.includes('twilio-media-stream-protocol-0.1.0')) {
+            console.log('Protocol mismatch:', webSocketProtocol);
             return new Response('Unsupported protocol', { status: 400 });
         }
 
         if (!webSocketKey) {
+            console.log('Missing WebSocket key');
             return new Response('Missing Sec-WebSocket-Key', { status: 400 });
         }
 
-        // Generate accept key using Web Crypto API
         const acceptKey = await createAcceptValue(webSocketKey);
+        console.log('Generated Accept Key:', acceptKey);
 
         const headers = new Headers({
             'Upgrade': 'websocket',
