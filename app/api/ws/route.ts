@@ -3,44 +3,48 @@ import { NextRequest } from 'next/server';
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
-    const { searchParams } = new URL(request.url);
-
     if (request.headers.get('upgrade') !== 'websocket') {
         return new Response('Expected Upgrade: websocket', { status: 426 });
     }
 
     try {
-        const upgradeHeader = request.headers.get('upgrade');
-        const connectionHeader = request.headers.get('connection');
-        const keyHeader = request.headers.get('sec-websocket-key');
-        const versionHeader = request.headers.get('sec-websocket-version');
+        const webSocketKey = request.headers.get('sec-websocket-key');
+        const webSocketProtocol = request.headers.get('sec-websocket-protocol');
 
-        if (!upgradeHeader || !connectionHeader?.toLowerCase().includes('upgrade') || !keyHeader || !versionHeader) {
-            return new Response('Invalid WebSocket upgrade request', { status: 400 });
+        if (!webSocketProtocol?.includes('twilio-media-stream-protocol-0.1.0')) {
+            return new Response('Unsupported protocol', { status: 400 });
         }
 
-        const acceptKey = await createAcceptKey(keyHeader);
+        if (!webSocketKey) {
+            return new Response('Missing Sec-WebSocket-Key', { status: 400 });
+        }
+
+        // Generate accept key using Web Crypto API
+        const acceptKey = await createAcceptValue(webSocketKey);
 
         const headers = new Headers({
             'Upgrade': 'websocket',
             'Connection': 'Upgrade',
             'Sec-WebSocket-Accept': acceptKey,
+            'Sec-WebSocket-Protocol': 'twilio-media-stream-protocol-0.1.0'
         });
 
-        return new Response(null, { status: 101, headers });
+        return new Response(null, {
+            status: 101,
+            headers: headers
+        });
     } catch (error) {
         console.error('WebSocket setup error:', error);
         return new Response('WebSocket setup failed', { status: 500 });
     }
 }
 
-async function createAcceptKey(key: string): Promise<string> {
+async function createAcceptValue(webSocketKey: string): Promise<string> {
     const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
-    const acceptKey = key + GUID;
-    const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(acceptKey));
-
-    // Convert buffer to base64 without spreading
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashString = hashArray.map(b => String.fromCharCode(b)).join('');
+    const encoder = new TextEncoder();
+    const data = encoder.encode(webSocketKey + GUID);
+    const hash = await crypto.subtle.digest('SHA-1', data);
+    const hashArray = Array.from(new Uint8Array(hash));
+    const hashString = hashArray.map(byte => String.fromCharCode(byte)).join('');
     return btoa(hashString);
 }
