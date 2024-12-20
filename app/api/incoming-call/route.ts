@@ -13,10 +13,18 @@ export async function POST(request: NextRequest) {
         const wsUrl = `wss://${host}/api/ws`;
         console.log('WebSocket URL:', wsUrl);
 
-        twiml.connect().stream({
+        // Create connect and stream elements separately
+        const connect = twiml.connect();
+        const stream = connect.stream({
             url: wsUrl,
             track: 'inbound_track'
-        }).addParameter('protocol', 'twilio-media-stream-protocol-0.1.0');
+        });
+
+        // Add parameter to the stream
+        stream.parameter({
+            name: 'protocol',
+            value: 'twilio-media-stream-protocol-0.1.0'
+        });
 
         console.log('TwiML generated:', twiml.toString());
 
