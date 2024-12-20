@@ -1,35 +1,33 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
         console.log('Incoming call request received');
 
-        // Create TwiML response
         const twiml = new twilio.twiml.VoiceResponse();
-        console.log('Creating TwiML response');
-
-        // Add Stream to TwiML
         const host = request.headers.get('host');
         console.log('Host:', host);
 
+        // Construct WebSocket URL with protocol specification
+        const wsUrl = `wss://${host}/api/ws`;
+        console.log('WebSocket URL:', wsUrl);
+
         twiml.connect().stream({
-            url: `wss://${host}/api/ws/media-stream`
-        });
+            url: wsUrl,
+            track: 'inbound_track'
+        }).addParameter('protocol', 'twilio-media-stream-protocol-0.1.0');
 
         console.log('TwiML generated:', twiml.toString());
 
-        // Return response
         return new NextResponse(twiml.toString(), {
             headers: {
                 'Content-Type': 'text/xml',
             },
         });
     } catch (error) {
-        // Log the full error
         console.error('Error in incoming-call route:', error);
 
-        // Return a basic TwiML response in case of error
         const errorTwiml = new twilio.twiml.VoiceResponse();
         errorTwiml.say('Sorry, there was an error processing your call.');
 
