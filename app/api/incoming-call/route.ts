@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import twilio from 'twilio';
-import { verifyTwilioRequest } from '@/lib/twilio';
+import { verifyTwilioRequest } from '../../lib/twilio';
 
 export async function POST(request: Request) {
     // Verify the request is from Twilio

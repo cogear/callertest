@@ -1,8 +1,8 @@
 import { ApiGatewayManagementApi } from '@aws-sdk/client-apigatewaymanagementapi';
 import { NextResponse } from 'next/server';
 import WebSocket from 'ws';
-import { getSignedUrl } from '@/lib/elevenlabs';
-import type { TwilioMessage, ElevenLabsMessage } from '@/types';
+import { getSignedUrl } from '../../../lib/elevenlabs';
+import type { TwilioMessage, ElevenLabsMessage } from '../../../../types';
 
 // Initialize AWS API Gateway Management API client
 const createApiGatewayClient = (endpoint: string) => {
